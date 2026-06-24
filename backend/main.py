@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import health
+from backend.routers import health, audio
 
 app = FastAPI(title="ASR Labeling Backend")
 
@@ -12,3 +12,4 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(audio.router)
