@@ -1,0 +1,125 @@
+'use client'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import WaveSurfer from 'wavesurfer.js'
+
+interface Props {
+  audioUrl: string | null
+  loading: boolean
+  error: string | null
+  onTimeUpdate: (time: number) => void
+  onPlayPause?: (playing: boolean) => void
+}
+
+export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate, onPlayPause }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const wsRef = useRef<WaveSurfer | null>(null)
+  const [playing, setPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [volume, setVolume] = useState(1)
+  const [wsReady, setWsReady] = useState(false)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const ws = WaveSurfer.create({
+      container: containerRef.current,
+      waveColor: '#93C5FD',
+      progressColor: '#2563EB',
+      height: 80,
+      barWidth: 2,
+      barGap: 1,
+    })
+    wsRef.current = ws
+
+    ws.on('ready', () => setWsReady(true))
+    ws.on('timeupdate', (t) => {
+      setCurrentTime(t)
+      onTimeUpdate(t)
+    })
+    ws.on('finish', () => { setPlaying(false); onPlayPause?.(false) })
+    ws.on('decode', (d) => setDuration(d))
+
+    return () => { ws.destroy(); wsRef.current = null }
+  }, [])
+
+  useEffect(() => {
+    if (!wsRef.current || !audioUrl) { setWsReady(false); return }
+    setWsReady(false)
+    setPlaying(false)
+    setCurrentTime(0)
+    wsRef.current.load(audioUrl)
+  }, [audioUrl])
+
+  const togglePlay = useCallback(() => {
+    if (!wsRef.current || !wsReady) return
+    wsRef.current.playPause()
+    const nowPlaying = !playing
+    setPlaying(nowPlaying)
+    onPlayPause?.(nowPlaying)
+  }, [wsReady, playing, onPlayPause])
+
+  const seek = useCallback((delta: number) => {
+    if (!wsRef.current || !wsReady) return
+    wsRef.current.skip(delta)
+  }, [wsReady])
+
+  const handleVolumeChange = useCallback((v: number) => {
+    setVolume(v)
+    wsRef.current?.setVolume(v)
+  }, [])
+
+  // Expose togglePlay for keyboard shortcut
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).__wavesurferTogglePlay = togglePlay
+  }, [togglePlay])
+
+  function fmt(t: number) {
+    const m = Math.floor(t / 60)
+    const s = Math.floor(t % 60)
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
+  if (!audioUrl && !loading && !error) {
+    return (
+      <div className="flex items-center justify-center h-32 bg-gray-100 rounded-lg text-sm text-gray-400">
+        Chọn một item để xem waveform
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      {loading && <div className="h-20 flex items-center justify-center text-gray-400 text-sm">Đang tải audio...</div>}
+      {error && !loading && (
+        <div className="h-20 flex items-center justify-center text-amber-600 text-sm bg-amber-50 rounded">
+          {error}
+        </div>
+      )}
+      <div ref={containerRef} className={loading || error ? 'hidden' : ''} />
+      {!error && (
+        <div className="flex items-center gap-3 mt-3">
+          <button onClick={() => seek(-5)} className="text-gray-500 hover:text-gray-700 text-xs">−5s</button>
+          <button
+            onClick={togglePlay}
+            disabled={!wsReady}
+            className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-40"
+          >
+            {playing ? '⏸' : '▶'}
+          </button>
+          <button onClick={() => seek(5)} className="text-gray-500 hover:text-gray-700 text-xs">+5s</button>
+          <span className="text-xs text-gray-500 tabular-nums">
+            {fmt(currentTime)} / {fmt(duration)}
+          </span>
+          <input
+            type="range"
+            min={0} max={1} step={0.05}
+            value={volume}
+            onChange={(e) => handleVolumeChange(Number(e.target.value))}
+            className="w-20 ml-auto"
+          />
+          <span className="text-xs text-gray-400">🔊</span>
+        </div>
+      )}
+    </div>
+  )
+}

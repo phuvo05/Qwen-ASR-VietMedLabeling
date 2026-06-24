@@ -1,12 +1,27 @@
 'use client'
+import { useState, useCallback } from 'react'
 import { useDataset } from '@/hooks/useDataset'
+import { useAudioMatch } from '@/hooks/useAudioMatch'
 import JsonUploader from '@/components/JsonUploader'
 import ProgressBar from '@/components/ProgressBar'
 import AudioUploader from '@/components/AudioUploader'
 import ItemSidebar from '@/components/ItemSidebar'
+import WaveformPlayer from '@/components/WaveformPlayer'
 
 export default function Home() {
   const ds = useDataset()
+  const [retryTrigger, setRetryTrigger] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+
+  const { audioUrl, loading: audioLoading, error: audioError } = useAudioMatch(
+    ds.currentId,
+    retryTrigger
+  )
+
+  const handleUploaded = useCallback(() => {
+    setRetryTrigger((t) => t + 1)
+  }, [])
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -14,7 +29,7 @@ export default function Home() {
         <h1 className="text-base font-bold text-gray-800">ASR Labeling</h1>
         <JsonUploader onLoad={ds.loadDataset} recordCount={ds.records.length} />
         <ProgressBar total={ds.records.length} checked={Object.keys(ds.checked).length} />
-        <AudioUploader onUploaded={() => {/* retrigger audio match — wired in Task 11 */}} />
+        <AudioUploader onUploaded={handleUploaded} />
         <div className="flex-1 min-h-0 flex flex-col">
           <ItemSidebar
             records={ds.records}
@@ -24,16 +39,17 @@ export default function Home() {
           />
         </div>
       </aside>
+
       <main className="flex-1 flex flex-col overflow-hidden p-4 gap-4">
-        {ds.records.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-gray-400">
-            <p>Upload file JSON để bắt đầu</p>
-          </div>
-        ) : (
-          <div className="text-gray-500 text-sm">
-            {ds.currentId ? `Đang xem: ${ds.currentId}` : 'Chọn một item từ sidebar'}
-          </div>
-        )}
+        <WaveformPlayer
+          audioUrl={audioUrl}
+          loading={audioLoading}
+          error={audioError}
+          onTimeUpdate={setCurrentTime}
+          onPlayPause={setIsPlaying}
+        />
+        {/* TranscriptEditor added in Task 12 */}
+        <div className="flex-1" />
       </main>
     </div>
   )
