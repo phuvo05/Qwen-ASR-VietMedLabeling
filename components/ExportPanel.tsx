@@ -47,7 +47,7 @@ export default function ExportPanel({ records, checked, edited, onImport }: Prop
   }
 
   function exportFullReviewed() {
-    const data = records.map((r, i) => {
+    const data = records.map((r) => {
       const entry = checked[r.id]
       return {
         ...r,
