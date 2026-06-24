@@ -10,7 +10,7 @@ interface Options {
   onCheck: (id: string) => void
 }
 
-export function useKeyboard({ records, currentId, checked, onSelect, onCheck }: Options) {
+export function useKeyboard({ records, currentId, onSelect, onCheck }: Options) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName
