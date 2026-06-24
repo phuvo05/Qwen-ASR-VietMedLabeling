@@ -52,5 +52,5 @@ export function useKeyboard({ records, currentId, checked, onSelect, onCheck }: 
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [records, currentId, checked, onSelect, onCheck])
+  }, [records, currentId, onSelect, onCheck])
 }
