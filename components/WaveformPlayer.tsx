@@ -104,7 +104,7 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
           {displayError}
         </div>
       )}
-      <div ref={containerRef} className={loading || displayError ? 'hidden' : ''} />
+      <div ref={containerRef} className={loading || displayError ? 'hidden' : ''} style={{minHeight: 80}} />
       {audioUrl && !loading && (
         <audio controls src={audioUrl} className="w-full mt-2" style={{height: 32}} onError={(e) => console.error('[native audio error]', e)} onCanPlay={() => console.log('[native audio] canplay OK')} />
       )}
