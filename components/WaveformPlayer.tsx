@@ -90,19 +90,26 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      {noAudio && (
-        <div className="flex items-center justify-center bg-gray-100 rounded text-sm text-gray-400" style={{height: 80}}>
-          Chọn một item để xem waveform
-        </div>
-      )}
-      {loading && <div className="h-20 flex items-center justify-center text-gray-400 text-sm">Đang tải audio...</div>}
-      {displayError && !loading && (
-        <div className="h-20 flex items-center justify-center text-amber-600 text-sm bg-amber-50 rounded">
-          {displayError}
-        </div>
-      )}
-      <div ref={containerRef} style={{height: 80, visibility: noAudio || !!displayError ? 'hidden' : 'visible'}} />
-      {!displayError && (
+      {/* Container always in DOM so containerRef is never null — WaveSurfer needs this */}
+      <div style={{position: 'relative', height: 80}}>
+        <div ref={containerRef} style={{height: 80, visibility: noAudio || !!displayError ? 'hidden' : 'visible'}} />
+        {noAudio && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded text-sm text-gray-400">
+            Chọn một item để xem waveform
+          </div>
+        )}
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+            Đang tải audio...
+          </div>
+        )}
+        {displayError && !loading && (
+          <div className="absolute inset-0 flex items-center justify-center text-amber-600 text-sm bg-amber-50 rounded">
+            {displayError}
+          </div>
+        )}
+      </div>
+      {!noAudio && !displayError && (
         <div className="flex items-center gap-3 mt-3">
           <button onClick={() => seek(-5)} className="text-gray-500 hover:text-gray-700 text-xs">−5s</button>
           <button
