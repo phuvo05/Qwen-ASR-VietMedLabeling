@@ -56,7 +56,7 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
     const nowPlaying = wsRef.current.isPlaying()
     setPlaying(nowPlaying)
     onPlayPause?.(nowPlaying)
-  }, [wsReady, playing, onPlayPause])
+  }, [wsReady, onPlayPause])
 
   const seek = useCallback((delta: number) => {
     if (!wsRef.current || !wsReady) return
