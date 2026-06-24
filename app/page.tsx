@@ -2,6 +2,7 @@
 import { useDataset } from '@/hooks/useDataset'
 import JsonUploader from '@/components/JsonUploader'
 import ProgressBar from '@/components/ProgressBar'
+import AudioUploader from '@/components/AudioUploader'
 import ItemSidebar from '@/components/ItemSidebar'
 
 export default function Home() {
@@ -13,6 +14,7 @@ export default function Home() {
         <h1 className="text-base font-bold text-gray-800">ASR Labeling</h1>
         <JsonUploader onLoad={ds.loadDataset} recordCount={ds.records.length} />
         <ProgressBar total={ds.records.length} checked={Object.keys(ds.checked).length} />
+        <AudioUploader onUploaded={() => {/* retrigger audio match — wired in Task 11 */}} />
         <div className="flex-1 min-h-0 flex flex-col">
           <ItemSidebar
             records={ds.records}
