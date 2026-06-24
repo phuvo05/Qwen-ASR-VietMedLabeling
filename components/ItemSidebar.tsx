@@ -24,7 +24,7 @@ export default function ItemSidebar({ records, checked, currentId, onSelect }: P
         return (
           r.id.toLowerCase().includes(q) ||
           r.text.toLowerCase().includes(q) ||
-          String(i).includes(q)
+          String(i + 1).includes(q)
         )
       }
       return true
