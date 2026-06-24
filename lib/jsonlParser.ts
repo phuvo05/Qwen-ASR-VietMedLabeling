@@ -23,8 +23,13 @@ export function parseDataset(content: string): DatasetRecord[] {
         ? timestamps.reduce((sum, t) => sum + t.confidence, 0) / timestamps.length
         : null
 
+    const rawId = String(record.id ?? '')
+    const id = rawId.includes('/') || rawId.includes('\\')
+      ? rawId.split(/[/\\]/).pop() ?? rawId
+      : rawId
+
     return {
-      id: String(record.id ?? ''),
+      id,
       text: String(record.text ?? ''),
       timestamps,
       _avgConfidence,
