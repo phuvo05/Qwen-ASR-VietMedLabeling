@@ -45,7 +45,6 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
   }, [])
 
   useEffect(() => {
-    console.log('[WaveformPlayer] audioUrl changed:', audioUrl ? audioUrl.substring(0, 80) + '...' : null, '| wsRef:', !!wsRef.current)
     if (!wsRef.current || !audioUrl) { setWsReady(false); return }
     setWsReady(false)
     setWsError(null)
@@ -87,27 +86,22 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
   }
 
   const displayError = error ?? wsError
-
-  if (!audioUrl && !loading && !displayError) {
-    return (
-      <div className="flex items-center justify-center h-32 bg-gray-100 rounded-lg text-sm text-gray-400">
-        Chọn một item để xem waveform
-      </div>
-    )
-  }
+  const noAudio = !audioUrl && !loading && !displayError
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
+      {noAudio && (
+        <div className="flex items-center justify-center bg-gray-100 rounded text-sm text-gray-400" style={{height: 80}}>
+          Chọn một item để xem waveform
+        </div>
+      )}
       {loading && <div className="h-20 flex items-center justify-center text-gray-400 text-sm">Đang tải audio...</div>}
       {displayError && !loading && (
         <div className="h-20 flex items-center justify-center text-amber-600 text-sm bg-amber-50 rounded">
           {displayError}
         </div>
       )}
-      <div ref={containerRef} className={loading || displayError ? 'hidden' : ''} style={{minHeight: 80}} />
-      {audioUrl && !loading && (
-        <audio controls src={audioUrl} className="w-full mt-2" style={{height: 32}} onError={(e) => console.error('[native audio error]', e)} onCanPlay={() => console.log('[native audio] canplay OK')} />
-      )}
+      <div ref={containerRef} style={{height: 80, visibility: noAudio || !!displayError ? 'hidden' : 'visible'}} />
       {!displayError && (
         <div className="flex items-center gap-3 mt-3">
           <button onClick={() => seek(-5)} className="text-gray-500 hover:text-gray-700 text-xs">−5s</button>
