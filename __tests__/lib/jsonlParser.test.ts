@@ -45,4 +45,21 @@ describe('parseDataset', () => {
     const result = parseDataset(input)
     expect(result[0]._avgConfidence).toBeNull()
   })
+
+  it('extracts basename from full POSIX path id', () => {
+    const fullPath = { ...SAMPLE_RECORD, id: 'datasets/phuuvt/VietMed/VietMed_un_001_s05OFV.wav' }
+    const result = parseDataset(JSON.stringify([fullPath]))
+    expect(result[0].id).toBe('VietMed_un_001_s05OFV.wav')
+  })
+
+  it('extracts basename from full Windows path id', () => {
+    const fullPath = { ...SAMPLE_RECORD, id: 'datasets\\phuuvt\\VietMed\\VietMed_un_001_s05OFV.wav' }
+    const result = parseDataset(JSON.stringify([fullPath]))
+    expect(result[0].id).toBe('VietMed_un_001_s05OFV.wav')
+  })
+
+  it('leaves plain filename id unchanged', () => {
+    const result = parseDataset(JSON.stringify([SAMPLE_RECORD]))
+    expect(result[0].id).toBe('VietMed_un_001_s05OFV.wav')
+  })
 })
