@@ -2,6 +2,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useDataset } from '@/hooks/useDataset'
 import { useAudioMatch } from '@/hooks/useAudioMatch'
+import { useKeyboard } from '@/hooks/useKeyboard'
 import JsonUploader from '@/components/JsonUploader'
 import ProgressBar from '@/components/ProgressBar'
 import AudioUploader from '@/components/AudioUploader'
@@ -26,6 +27,14 @@ export default function Home() {
   )
 
   const handleUploaded = useCallback(() => setRetryTrigger((t) => t + 1), [])
+
+  useKeyboard({
+    records: ds.records,
+    currentId: ds.currentId,
+    checked: ds.checked,
+    onSelect: ds.setCurrentId,
+    onCheck: ds.markChecked,
+  })
 
   return (
     <div className="flex h-screen overflow-hidden">
