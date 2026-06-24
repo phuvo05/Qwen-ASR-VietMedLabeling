@@ -22,7 +22,8 @@ export function useAudioMatch(currentId: string | null, retryTrigger: number) {
     }
     setLoading(true)
     setError(null)
-    apiGet<PresignedUrlResponse>(`/api/presigned-url/${encodeURIComponent(currentId)}`)
+    const basename = currentId.split('/').pop()?.split('\\').pop() ?? currentId
+    apiGet<PresignedUrlResponse>(`/api/presigned-url/${encodeURIComponent(basename)}`)
       .then((data) => {
         setAudioUrl(data.url)
       })

@@ -18,6 +18,7 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
   const [wsReady, setWsReady] = useState(false)
+  const [wsError, setWsError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -32,6 +33,7 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
     wsRef.current = ws
 
     ws.on('ready', () => setWsReady(true))
+    ws.on('error', (e) => { console.error('[WaveSurfer error]', e); setWsError(String(e)) })
     ws.on('timeupdate', (t) => {
       setCurrentTime(t)
       onTimeUpdate(t)
@@ -43,11 +45,16 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
   }, [])
 
   useEffect(() => {
+    console.log('[WaveformPlayer] audioUrl changed:', audioUrl ? audioUrl.substring(0, 80) + '...' : null, '| wsRef:', !!wsRef.current)
     if (!wsRef.current || !audioUrl) { setWsReady(false); return }
     setWsReady(false)
+    setWsError(null)
     setPlaying(false)
     setCurrentTime(0)
-    wsRef.current.load(audioUrl)
+    wsRef.current.load(audioUrl).catch((e: unknown) => {
+      console.error('[WaveSurfer load error]', e)
+      setWsError(String(e))
+    })
   }, [audioUrl])
 
   const togglePlay = useCallback(() => {
@@ -79,7 +86,9 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  if (!audioUrl && !loading && !error) {
+  const displayError = error ?? wsError
+
+  if (!audioUrl && !loading && !displayError) {
     return (
       <div className="flex items-center justify-center h-32 bg-gray-100 rounded-lg text-sm text-gray-400">
         Chọn một item để xem waveform
@@ -90,13 +99,13 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       {loading && <div className="h-20 flex items-center justify-center text-gray-400 text-sm">Đang tải audio...</div>}
-      {error && !loading && (
+      {displayError && !loading && (
         <div className="h-20 flex items-center justify-center text-amber-600 text-sm bg-amber-50 rounded">
-          {error}
+          {displayError}
         </div>
       )}
-      <div ref={containerRef} className={loading || error ? 'hidden' : ''} />
-      {!error && (
+      <div ref={containerRef} className={loading || displayError ? 'hidden' : ''} />
+      {!displayError && (
         <div className="flex items-center gap-3 mt-3">
           <button onClick={() => seek(-5)} className="text-gray-500 hover:text-gray-700 text-xs">−5s</button>
           <button

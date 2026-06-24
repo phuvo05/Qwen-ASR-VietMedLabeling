@@ -40,6 +40,8 @@ export function useDataset() {
     const parsed = parseDataset(content)
     setRecords(parsed)
     save(KEYS.dataset, parsed)
+    setCurrentIdState(null)
+    save(KEYS.currentId, null)
   }, [])
 
   const setCurrentId = useCallback((id: string) => {

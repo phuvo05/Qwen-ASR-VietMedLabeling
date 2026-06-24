@@ -9,8 +9,13 @@ def _client():
         kwargs["aws_secret_access_key"] = settings.aws_secret_access_key
     return boto3.client("s3", **kwargs)
 
+_MIME = {'.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.flac': 'audio/flac'}
+
 def upload_file(local_path: str, s3_key: str) -> None:
-    _client().upload_file(local_path, settings.aws_bucket_name, s3_key)
+    import os
+    ext = os.path.splitext(local_path)[1].lower()
+    extra = {'ContentType': _MIME.get(ext, 'audio/octet-stream')}
+    _client().upload_file(local_path, settings.aws_bucket_name, s3_key, ExtraArgs=extra)
 
 def get_presigned_url(s3_key: str, expires_in: int = 3600) -> str:
     return _client().generate_presigned_url(
