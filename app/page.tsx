@@ -9,6 +9,7 @@ import AudioUploader from '@/components/AudioUploader'
 import ItemSidebar from '@/components/ItemSidebar'
 import WaveformPlayer from '@/components/WaveformPlayer'
 import TranscriptEditor from '@/components/TranscriptEditor'
+import ExportPanel from '@/components/ExportPanel'
 
 export default function Home() {
   const ds = useDataset()
@@ -70,6 +71,12 @@ export default function Home() {
           onSave={ds.setEditedTranscript}
           onCheck={ds.markChecked}
           onUncheck={ds.uncheck}
+        />
+        <ExportPanel
+          records={ds.records}
+          checked={ds.checked}
+          edited={ds.edited}
+          onImport={ds.importChecked}
         />
       </main>
     </div>
