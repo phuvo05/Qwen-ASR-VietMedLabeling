@@ -105,6 +105,9 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
         </div>
       )}
       <div ref={containerRef} className={loading || displayError ? 'hidden' : ''} />
+      {audioUrl && !loading && (
+        <audio controls src={audioUrl} className="w-full mt-2" style={{height: 32}} onError={(e) => console.error('[native audio error]', e)} onCanPlay={() => console.log('[native audio] canplay OK')} />
+      )}
       {!displayError && (
         <div className="flex items-center gap-3 mt-3">
           <button onClick={() => seek(-5)} className="text-gray-500 hover:text-gray-700 text-xs">−5s</button>
