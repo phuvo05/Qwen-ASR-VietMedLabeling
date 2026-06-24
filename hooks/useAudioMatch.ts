@@ -17,6 +17,7 @@ export function useAudioMatch(currentId: string | null, retryTrigger: number) {
     if (!currentId) {
       setAudioUrl(null)
       setError(null)
+      setLoading(false)
       return
     }
     setLoading(true)

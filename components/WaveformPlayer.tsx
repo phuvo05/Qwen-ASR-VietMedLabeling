@@ -53,7 +53,7 @@ export default function WaveformPlayer({ audioUrl, loading, error, onTimeUpdate,
   const togglePlay = useCallback(() => {
     if (!wsRef.current || !wsReady) return
     wsRef.current.playPause()
-    const nowPlaying = !playing
+    const nowPlaying = wsRef.current.isPlaying()
     setPlaying(nowPlaying)
     onPlayPause?.(nowPlaying)
   }, [wsReady, playing, onPlayPause])
