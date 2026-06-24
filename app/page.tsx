@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useDataset } from '@/hooks/useDataset'
 import { useAudioMatch } from '@/hooks/useAudioMatch'
 import JsonUploader from '@/components/JsonUploader'
@@ -7,6 +7,7 @@ import ProgressBar from '@/components/ProgressBar'
 import AudioUploader from '@/components/AudioUploader'
 import ItemSidebar from '@/components/ItemSidebar'
 import WaveformPlayer from '@/components/WaveformPlayer'
+import TranscriptEditor from '@/components/TranscriptEditor'
 
 export default function Home() {
   const ds = useDataset()
@@ -19,9 +20,12 @@ export default function Home() {
     retryTrigger
   )
 
-  const handleUploaded = useCallback(() => {
-    setRetryTrigger((t) => t + 1)
-  }, [])
+  const currentRecord = useMemo(
+    () => ds.records.find((r) => r.id === ds.currentId) ?? null,
+    [ds.records, ds.currentId]
+  )
+
+  const handleUploaded = useCallback(() => setRetryTrigger((t) => t + 1), [])
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -48,8 +52,16 @@ export default function Home() {
           onTimeUpdate={setCurrentTime}
           onPlayPause={setIsPlaying}
         />
-        {/* TranscriptEditor added in Task 12 */}
-        <div className="flex-1" />
+        <TranscriptEditor
+          record={currentRecord}
+          editedText={ds.currentId ? ds.edited[ds.currentId] : undefined}
+          isChecked={!!ds.currentId && !!ds.checked[ds.currentId]}
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          onSave={ds.setEditedTranscript}
+          onCheck={ds.markChecked}
+          onUncheck={ds.uncheck}
+        />
       </main>
     </div>
   )
