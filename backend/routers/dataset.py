@@ -1,11 +1,15 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
-import os
+from typing import Optional
+import os, json, threading
 
 router = APIRouter()
 
-_DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'default_dataset.jsonl')
+_DATA_DIR   = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+_DATA_FILE  = os.path.join(_DATA_DIR, 'default_dataset.jsonl')
+_CHECK_FILE = os.path.join(_DATA_DIR, 'checked.json')
+_lock = threading.Lock()
 
 
 @router.get('/api/dataset', response_class=PlainTextResponse)
@@ -22,7 +26,39 @@ class DatasetBody(BaseModel):
 
 @router.post('/api/dataset')
 async def save_dataset(body: DatasetBody):
-    os.makedirs(os.path.dirname(_DATA_FILE), exist_ok=True)
+    os.makedirs(_DATA_DIR, exist_ok=True)
     with open(_DATA_FILE, 'w', encoding='utf-8') as f:
         f.write(body.content)
+    return {'status': 'ok'}
+
+
+# ── Shared checked state ──────────────────────────────────────────────────────
+
+@router.get('/api/checked')
+async def get_checked():
+    if not os.path.exists(_CHECK_FILE):
+        return {}
+    with open(_CHECK_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+class CheckUpdate(BaseModel):
+    id: str
+    entry: Optional[dict] = None   # None = uncheck
+
+
+@router.post('/api/checked')
+async def update_checked(body: CheckUpdate):
+    os.makedirs(_DATA_DIR, exist_ok=True)
+    with _lock:
+        data: dict = {}
+        if os.path.exists(_CHECK_FILE):
+            with open(_CHECK_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        if body.entry is None:
+            data.pop(body.id, None)
+        else:
+            data[body.id] = body.entry
+        with open(_CHECK_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False)
     return {'status': 'ok'}

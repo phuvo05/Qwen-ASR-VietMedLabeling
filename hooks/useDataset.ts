@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { DatasetRecord, CheckedEntry } from '@/types'
 import { parseDataset } from '@/lib/jsonlParser'
-import { apiGetText, apiPostJson } from '@/lib/apiClient'
+import { apiGet, apiGetText, apiPostJson } from '@/lib/apiClient'
 
 const KEYS = {
   dataset: 'asr_dataset',
@@ -31,17 +31,18 @@ export function useDataset() {
   const [currentId, setCurrentIdState] = useState<string | null>(null)
 
   useEffect(() => {
-    setChecked(load<Record<string, CheckedEntry>>(KEYS.checked, {}))
     setEdited(load<Record<string, string>>(KEYS.edited, {}))
-    // Always load dataset from server so all users see same data; fallback to localStorage
+    // Load dataset from server; fallback to localStorage
     apiGetText('/api/dataset')
-      .then(content => {
-        setRecords(parseDataset(content))
-      })
+      .then(content => setRecords(parseDataset(content)))
       .catch(() => {
         setRecords(load<DatasetRecord[]>(KEYS.dataset, []))
         setCurrentIdState(load<string | null>(KEYS.currentId, null))
       })
+    // Load shared checked state from server; fallback to localStorage
+    apiGet<Record<string, CheckedEntry>>('/api/checked')
+      .then(data => setChecked(data))
+      .catch(() => setChecked(load<Record<string, CheckedEntry>>(KEYS.checked, {})))
   }, [])
 
   const loadDataset = useCallback((content: string) => {
@@ -70,6 +71,7 @@ export function useDataset() {
       save(KEYS.checked, next)
       return next
     })
+    apiPostJson('/api/checked', { id, entry }).catch(console.error)
   }, [records])
 
   const uncheck = useCallback((id: string) => {
@@ -79,6 +81,7 @@ export function useDataset() {
       save(KEYS.checked, next)
       return next
     })
+    apiPostJson('/api/checked', { id, entry: null }).catch(console.error)
   }, [])
 
   const setEditedTranscript = useCallback((id: string, text: string) => {
