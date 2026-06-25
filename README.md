@@ -2,7 +2,7 @@
 
 Web-based manual review tool for Vietnamese medical ASR pseudo-labels. Built for multi-user labeling workflows: dataset and check state are stored server-side so every reviewer sees the same data in real time.
 
-![UI Screenshot](images/Screenshot%202026-06-25%20105643.png)
+![UI Screenshot](images/image.png)
 
 ---
 
