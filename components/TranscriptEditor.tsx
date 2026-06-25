@@ -196,14 +196,7 @@ export default function TranscriptEditor({
 
       {/* Action buttons */}
       <div className="flex gap-2 flex-wrap items-center flex-shrink-0">
-        {onNext && (
-          <button
-            onClick={onNext}
-            className="px-3 py-1.5 text-sm bg-gray-800 text-white rounded hover:bg-gray-900"
-          >
-            Tiếp theo →
-          </button>
-        )}
+
         <button
           onClick={handleSave}
           className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -235,6 +228,14 @@ export default function TranscriptEditor({
         >
           {copied ? '✓ Đã copy!' : 'Copy transcript'}
         </button>
+        {onNext && (
+          <button
+            onClick={onNext}
+            className="ml-auto px-3 py-1.5 text-sm bg-gray-800 text-white rounded hover:bg-gray-900"
+          >
+            Tiếp theo →
+          </button>
+        )}
       </div>
     </div>
   )
