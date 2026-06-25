@@ -28,6 +28,7 @@ export default function TranscriptEditor({
   const [draft, setDraft] = useState(displayText)
   const [editMode, setEditMode] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedId, setCopiedId] = useState(false)
 
   const activeWordIdx = useWordHighlight(record?.timestamps ?? [], currentTime)
 
@@ -63,8 +64,15 @@ export default function TranscriptEditor({
     <div className="flex-1 flex flex-col bg-white rounded-lg border border-gray-200 p-4 gap-3 min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
+        <div className="flex items-center gap-1.5 text-sm text-gray-600">
           <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{record.id}</span>
+          <button
+            onClick={() => { navigator.clipboard.writeText(record.id); setCopiedId(true); setTimeout(() => setCopiedId(false), 1500) }}
+            className="text-xs text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors"
+            title="Copy ID"
+          >
+            {copiedId ? '✓' : '⎘'}
+          </button>
           {record._avgConfidence !== null && (
             <span className="ml-2 text-xs text-gray-400">
               Confidence: {Math.round(record._avgConfidence * 100)}%
