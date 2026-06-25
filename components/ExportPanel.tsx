@@ -24,6 +24,42 @@ function downloadJson(data: unknown, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+// Levenshtein distance on token arrays
+function levenshtein(a: string[], b: string[]): number {
+  const m = a.length, n = b.length
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  )
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+  return dp[m][n]
+}
+
+function normalize(text: string) {
+  return text.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function computeWer(ref: string, hyp: string): number {
+  const r = normalize(ref).split(' ').filter(Boolean)
+  const h = normalize(hyp).split(' ').filter(Boolean)
+  if (r.length === 0) return h.length === 0 ? 0 : 1
+  return Math.min(levenshtein(r, h) / r.length, 1)
+}
+
+function computeCer(ref: string, hyp: string): number {
+  const r = normalize(ref).replace(/ /g, '').split('')
+  const h = normalize(hyp).replace(/ /g, '').split('')
+  if (r.length === 0) return h.length === 0 ? 0 : 1
+  return Math.min(levenshtein(r, h) / r.length, 1)
+}
+
+function round4(n: number) {
+  return Math.round(n * 10000) / 10000
+}
+
 export default function ExportPanel({ records, checked, edited, onImport }: Props) {
   const importRef = useRef<HTMLInputElement>(null)
   const checkedCount = Object.keys(checked).length
@@ -33,13 +69,20 @@ export default function ExportPanel({ records, checked, edited, onImport }: Prop
       .map((r, i) => {
         const entry = checked[r.id]
         if (!entry) return null
+        const original = entry.original_transcript
+        const editedTx = edited[r.id] ?? original
+        const isCorrect = normalize(original) === normalize(editedTx)
         return {
           id: r.id,
           filename: r.id,
           index: i,
           checked_at: entry.checked_at,
-          original_transcript: entry.original_transcript,
-          edited_transcript: edited[r.id] ?? entry.original_transcript,
+          checked_by: entry.checked_by ?? null,
+          original_transcript: original,
+          edited_transcript: editedTx,
+          is_correct: isCorrect,
+          wer: round4(computeWer(editedTx, original)),
+          cer: round4(computeCer(editedTx, original)),
         }
       })
       .filter(Boolean)
@@ -49,12 +92,21 @@ export default function ExportPanel({ records, checked, edited, onImport }: Prop
   function exportFullReviewed() {
     const data = records.map((r) => {
       const entry = checked[r.id]
+      const original = entry?.original_transcript ?? r.text
+      const editedTx = edited[r.id] ?? r.text
+      const isChecked = !!entry
       return {
-        ...r,
-        _avgConfidence: undefined,
-        checked: !!entry,
-        edited_transcript: edited[r.id] ?? r.text,
+        id: r.id,
+        text: r.text,
+        checked: isChecked,
         checked_at: entry?.checked_at ?? null,
+        checked_by: entry?.checked_by ?? null,
+        original_transcript: original,
+        edited_transcript: editedTx,
+        is_correct: isChecked ? normalize(original) === normalize(editedTx) : null,
+        wer: isChecked ? round4(computeWer(editedTx, original)) : null,
+        cer: isChecked ? round4(computeCer(editedTx, original)) : null,
+        avg_confidence: r._avgConfidence,
       }
     })
     downloadJson(data, 'full_reviewed.json')
