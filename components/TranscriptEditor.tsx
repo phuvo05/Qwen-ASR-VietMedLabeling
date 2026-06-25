@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import type { DatasetRecord } from '@/types'
+import type { DatasetRecord, CheckedEntry } from '@/types'
 import { useWordHighlight } from '@/hooks/useWordHighlight'
 
 function execCopy(text: string) {
@@ -25,7 +25,7 @@ function copyText(text: string): Promise<void> {
 interface Props {
   record: DatasetRecord | null
   editedText: string | undefined
-  isChecked: boolean
+  checkedEntry: CheckedEntry | null
   isPlaying: boolean
   currentTime: number
   onSave: (id: string, text: string) => void
@@ -36,13 +36,14 @@ interface Props {
 export default function TranscriptEditor({
   record,
   editedText,
-  isChecked,
+  checkedEntry,
   isPlaying,
   currentTime,
   onSave,
   onCheck,
   onUncheck,
 }: Props) {
+  const isChecked = !!checkedEntry
   const displayText = editedText ?? record?.text ?? ''
   const [draft, setDraft] = useState(displayText)
   const [editMode, setEditMode] = useState(false)
@@ -108,7 +109,11 @@ export default function TranscriptEditor({
               Confidence: {Math.round(record._avgConfidence * 100)}%
             </span>
           )}
-          {isChecked && <span className="ml-2 text-xs text-green-600 font-semibold">✓ Đã check</span>}
+          {checkedEntry && (
+            <span className="ml-2 text-xs text-green-600 font-semibold">
+              ✓ Đã check{checkedEntry.checked_by ? ` bởi ${checkedEntry.checked_by}` : ''}
+            </span>
+          )}
           {saved && <span className="ml-2 text-xs text-blue-600 font-semibold animate-pulse">✓ Đã lưu!</span>}
         </div>
         <button

@@ -111,7 +111,14 @@ export default function ItemSidebar({ records, checked, currentId, onSelect }: P
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 truncate pl-7 mt-0.5">{record.text}</p>
+                  <div className="flex items-center gap-1 pl-7 mt-0.5 min-w-0">
+                    {isChecked && checked[record.id]?.checked_by && (
+                      <span className="text-xs text-green-600 font-medium flex-shrink-0">
+                        [{checked[record.id].checked_by}]
+                      </span>
+                    )}
+                    <p className="text-xs text-gray-500 truncate">{record.text}</p>
+                  </div>
                 </button>
               </div>
             )

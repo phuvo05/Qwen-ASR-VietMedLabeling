@@ -63,11 +63,12 @@ export function useDataset() {
     save(KEYS.currentId, id)
   }, [])
 
-  const markChecked = useCallback((id: string) => {
+  const markChecked = useCallback((id: string, username?: string) => {
     const record = records.find((r) => r.id === id)
     const entry: CheckedEntry = {
       checked_at: new Date().toISOString(),
       original_transcript: record?.text ?? '',
+      ...(username ? { checked_by: username } : {}),
     }
     setChecked((prev) => {
       const next = { ...prev, [id]: entry }

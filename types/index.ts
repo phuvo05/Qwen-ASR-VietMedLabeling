@@ -15,6 +15,7 @@ export interface DatasetRecord {
 export interface CheckedEntry {
   checked_at: string
   original_transcript: string
+  checked_by?: string
 }
 
 export interface AudioMetadata {
