@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { DatasetRecord, CheckedEntry } from '@/types'
 import { parseDataset } from '@/lib/jsonlParser'
+import { apiGetText, apiPostJson } from '@/lib/apiClient'
 
 const KEYS = {
   dataset: 'asr_dataset',
@@ -30,10 +31,17 @@ export function useDataset() {
   const [currentId, setCurrentIdState] = useState<string | null>(null)
 
   useEffect(() => {
-    setRecords(load<DatasetRecord[]>(KEYS.dataset, []))
     setChecked(load<Record<string, CheckedEntry>>(KEYS.checked, {}))
     setEdited(load<Record<string, string>>(KEYS.edited, {}))
-    setCurrentIdState(load<string | null>(KEYS.currentId, null))
+    // Always load dataset from server so all users see same data; fallback to localStorage
+    apiGetText('/api/dataset')
+      .then(content => {
+        setRecords(parseDataset(content))
+      })
+      .catch(() => {
+        setRecords(load<DatasetRecord[]>(KEYS.dataset, []))
+        setCurrentIdState(load<string | null>(KEYS.currentId, null))
+      })
   }, [])
 
   const loadDataset = useCallback((content: string) => {
@@ -42,6 +50,8 @@ export function useDataset() {
     save(KEYS.dataset, parsed)
     setCurrentIdState(null)
     save(KEYS.currentId, null)
+    // Save to server so other users auto-load this dataset
+    apiPostJson('/api/dataset', { content }).catch(console.error)
   }, [])
 
   const setCurrentId = useCallback((id: string) => {
