@@ -32,6 +32,12 @@ export default function Home() {
     ds.markChecked(id, username ?? undefined)
   }, [ds.markChecked, username])
 
+  const handleNext = useCallback(() => {
+    if (!ds.currentId || !ds.records.length) return
+    const idx = ds.records.findIndex((r) => r.id === ds.currentId)
+    if (idx < ds.records.length - 1) ds.setCurrentId(ds.records[idx + 1].id)
+  }, [ds.currentId, ds.records, ds.setCurrentId])
+
   const { audioUrl, loading: audioLoading, error: audioError } = useAudioMatch(
     ds.currentId,
     retryTrigger
@@ -102,6 +108,7 @@ export default function Home() {
             onSave={ds.setEditedTranscript}
             onCheck={handleCheck}
             onUncheck={ds.uncheck}
+            onNext={ds.records.length > 0 ? handleNext : null}
           />
           <ExportPanel
             records={ds.records}

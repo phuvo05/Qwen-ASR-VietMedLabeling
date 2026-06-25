@@ -14,12 +14,40 @@ function execCopy(text: string) {
 }
 
 function copyText(text: string): Promise<void> {
-  // navigator.clipboard exists on HTTP but throws NotAllowedError (needs HTTPS)
   if (navigator.clipboard && window.isSecureContext) {
     return navigator.clipboard.writeText(text)
   }
   execCopy(text)
   return Promise.resolve()
+}
+
+// LCS-based word diff: marks which words in `original` are changed vs `edited`
+function diffOriginalWords(original: string, edited: string): Array<{ word: string; changed: boolean }> {
+  const ow = original.trim().split(/\s+/).filter(Boolean)
+  const ew = edited.trim().split(/\s+/).filter(Boolean)
+  if (!ow.length) return []
+
+  const m = ow.length, n = ew.length
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = ow[i - 1].toLowerCase() === ew[j - 1].toLowerCase()
+        ? dp[i - 1][j - 1] + 1
+        : Math.max(dp[i - 1][j], dp[i][j - 1])
+
+  const unchanged = new Set<number>()
+  let i = m, j = n
+  while (i > 0 && j > 0) {
+    if (ow[i - 1].toLowerCase() === ew[j - 1].toLowerCase()) {
+      unchanged.add(i - 1); i--; j--
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      i--
+    } else {
+      j--
+    }
+  }
+
+  return ow.map((word, idx) => ({ word, changed: !unchanged.has(idx) }))
 }
 
 interface Props {
@@ -31,22 +59,21 @@ interface Props {
   onSave: (id: string, text: string) => void
   onCheck: (id: string) => void
   onUncheck: (id: string) => void
+  onNext: (() => void) | null
 }
 
 export default function TranscriptEditor({
   record,
   editedText,
   checkedEntry,
-  isPlaying,
   currentTime,
   onSave,
   onCheck,
   onUncheck,
+  onNext,
 }: Props) {
   const isChecked = !!checkedEntry
-  const displayText = editedText ?? record?.text ?? ''
-  const [draft, setDraft] = useState(displayText)
-  const [editMode, setEditMode] = useState(false)
+  const [draft, setDraft] = useState(editedText ?? record?.text ?? '')
   const [copied, setCopied] = useState(false)
   const [copiedId, setCopiedId] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -55,27 +82,21 @@ export default function TranscriptEditor({
 
   useEffect(() => {
     setDraft(editedText ?? record?.text ?? '')
-    setEditMode(false)
   }, [record?.id])
-
-  useEffect(() => {
-    if (isPlaying) setEditMode(false)
-  }, [isPlaying])
 
   const handleSave = useCallback(() => {
     if (!record) return
     onSave(record.id, draft)
-    setEditMode(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }, [record, draft, onSave])
 
   const handleCopyTranscript = useCallback(() => {
-    copyText(displayText).then(() => {
+    copyText(draft).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     })
-  }, [displayText])
+  }, [draft])
 
   if (!record) {
     return (
@@ -85,92 +106,110 @@ export default function TranscriptEditor({
     )
   }
 
+  const diffWords = diffOriginalWords(record.text, draft)
+  const changedCount = diffWords.filter((w) => w.changed).length
+
   return (
-    <div className="flex-1 flex flex-col bg-white rounded-lg border border-gray-200 p-4 gap-3 min-h-0">
+    <div className="flex-1 flex flex-col bg-white rounded-lg border border-gray-200 p-4 gap-2 min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-sm text-gray-600">
+      <div className="flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-1.5 text-sm text-gray-600 flex-wrap">
           <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{record.id}</span>
           <button
             onClick={() => copyText(record.id).then(() => { setCopiedId(true); setTimeout(() => setCopiedId(false), 1500) })}
-            className={`relative text-xs px-1.5 py-0.5 rounded transition-all duration-150 ${
-              copiedId
-                ? 'bg-green-100 text-green-600 scale-110'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+            className={`text-xs px-1.5 py-0.5 rounded transition-all duration-150 ${
+              copiedId ? 'bg-green-100 text-green-600 scale-110' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
             }`}
             title="Copy ID"
           >
-            <span className={`inline-block transition-all duration-150 ${copiedId ? 'scale-110' : ''}`}>
-              {copiedId ? '✓' : '⎘'}
-            </span>
+            {copiedId ? '✓' : '⎘'}
           </button>
           {record._avgConfidence !== null && (
-            <span className="ml-2 text-xs text-gray-400">
+            <span className="text-xs text-gray-400">
               Confidence: {Math.round(record._avgConfidence * 100)}%
             </span>
           )}
           {checkedEntry && (
-            <span className="ml-2 text-xs text-green-600 font-semibold">
+            <span className="text-xs text-green-600 font-semibold">
               ✓ Đã check{checkedEntry.checked_by ? ` bởi ${checkedEntry.checked_by}` : ''}
             </span>
           )}
-          {saved && <span className="ml-2 text-xs text-blue-600 font-semibold animate-pulse">✓ Đã lưu!</span>}
+          {saved && (
+            <span className="text-xs text-blue-600 font-semibold animate-pulse">✓ Đã lưu!</span>
+          )}
         </div>
-        <button
-          onClick={() => setEditMode((v) => !v)}
-          className="text-xs text-blue-600 hover:underline"
-        >
-          {editMode ? 'Xem highlight' : 'Chỉnh sửa'}
-        </button>
       </div>
 
-      {/* Transcript area */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {!editMode ? (
-          /* Play mode: word-level highlight */
-          <div
-            className="text-base leading-8 text-gray-800 cursor-text select-text"
-            onClick={() => setEditMode(true)}
-          >
-            {record.timestamps.length > 0 ? (
-              record.timestamps.map((t, i) => (
+      {/* Original transcript panel */}
+      <div className="flex flex-col min-h-0 flex-1">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 flex-shrink-0">
+          Original
+        </p>
+        <div className="overflow-y-auto text-sm leading-8 bg-gray-50 rounded p-2 flex-1">
+          {record.timestamps.length > 0 ? (
+            record.timestamps.map((t, i) => {
+              const isActive = i === activeWordIdx
+              const isChanged = diffWords[i]?.changed ?? false
+              return (
                 <span
                   key={i}
-                  className={`transition-colors duration-75 rounded px-0.5 ${
-                    i === activeWordIdx
-                      ? 'bg-yellow-300 text-gray-900'
-                      : 'text-gray-800'
+                  className={`rounded px-0.5 transition-colors duration-75 ${
+                    isActive && isChanged ? 'bg-red-400 text-white' :
+                    isActive             ? 'bg-yellow-300 text-gray-900' :
+                    isChanged            ? 'bg-red-100 text-red-700' : ''
                   }`}
                 >
                   {t.word}{' '}
                 </span>
-              ))
-            ) : (
-              <span>{displayText}</span>
-            )}
-          </div>
-        ) : (
-          /* Edit mode: textarea */
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="w-full h-full min-h-[120px] resize-none text-base leading-7 text-gray-800 focus:outline-none"
-            placeholder="Transcript..."
-            autoFocus
-          />
-        )}
+              )
+            })
+          ) : (
+            diffWords.map((w, i) => (
+              <span
+                key={i}
+                className={`rounded px-0.5 ${w.changed ? 'bg-red-100 text-red-700' : ''}`}
+              >
+                {w.word}{' '}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Edited transcript panel */}
+      <div className="flex flex-col min-h-0 flex-1">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 flex-shrink-0">
+          Edited
+          {changedCount > 0 && (
+            <span className="ml-1.5 text-red-500 normal-case font-normal">
+              {changedCount} từ thay đổi
+            </span>
+          )}
+        </p>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="flex-1 resize-none text-sm leading-7 text-gray-800 border border-gray-200 rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          placeholder="Transcript..."
+        />
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-2 flex-wrap">
-        {editMode && (
+      <div className="flex gap-2 flex-wrap items-center flex-shrink-0">
+        {onNext && (
           <button
-            onClick={handleSave}
-            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            onClick={onNext}
+            className="px-3 py-1.5 text-sm bg-gray-800 text-white rounded hover:bg-gray-900"
           >
-            Lưu chỉnh sửa
+            Tiếp theo →
           </button>
         )}
+        <button
+          onClick={handleSave}
+          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Lưu chỉnh sửa
+        </button>
         {!isChecked ? (
           <button
             onClick={() => onCheck(record.id)}
