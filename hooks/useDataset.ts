@@ -31,7 +31,6 @@ export function useDataset() {
   const [currentId, setCurrentIdState] = useState<string | null>(null)
 
   useEffect(() => {
-    setEdited(load<Record<string, string>>(KEYS.edited, {}))
     // Load dataset from server; fallback to localStorage
     apiGetText('/api/dataset')
       .then(content => setRecords(parseDataset(content)))
@@ -43,6 +42,10 @@ export function useDataset() {
     apiGet<Record<string, CheckedEntry>>('/api/checked')
       .then(data => setChecked(data))
       .catch(() => setChecked(load<Record<string, CheckedEntry>>(KEYS.checked, {})))
+    // Load edited transcripts from server; fallback to localStorage
+    apiGet<Record<string, string>>('/api/edited')
+      .then(data => setEdited(data))
+      .catch(() => setEdited(load<Record<string, string>>(KEYS.edited, {})))
   }, [])
 
   const loadDataset = useCallback((content: string) => {
@@ -90,6 +93,7 @@ export function useDataset() {
       save(KEYS.edited, next)
       return next
     })
+    apiPostJson('/api/edited', { id, text }).catch(console.error)
   }, [])
 
   const clearAll = useCallback(() => {

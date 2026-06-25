@@ -48,6 +48,7 @@ export default function TranscriptEditor({
   const [editMode, setEditMode] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copiedId, setCopiedId] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const activeWordIdx = useWordHighlight(record?.timestamps ?? [], currentTime)
 
@@ -63,6 +64,9 @@ export default function TranscriptEditor({
   const handleSave = useCallback(() => {
     if (!record) return
     onSave(record.id, draft)
+    setEditMode(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
   }, [record, draft, onSave])
 
   const handleCopyTranscript = useCallback(() => {
@@ -105,6 +109,7 @@ export default function TranscriptEditor({
             </span>
           )}
           {isChecked && <span className="ml-2 text-xs text-green-600 font-semibold">✓ Đã check</span>}
+          {saved && <span className="ml-2 text-xs text-blue-600 font-semibold animate-pulse">✓ Đã lưu!</span>}
         </div>
         <button
           onClick={() => setEditMode((v) => !v)}

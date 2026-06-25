@@ -6,9 +6,10 @@ import os, json, threading
 
 router = APIRouter()
 
-_DATA_DIR   = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
-_DATA_FILE  = os.path.join(_DATA_DIR, 'default_dataset.jsonl')
-_CHECK_FILE = os.path.join(_DATA_DIR, 'checked.json')
+_DATA_DIR    = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+_DATA_FILE   = os.path.join(_DATA_DIR, 'default_dataset.jsonl')
+_CHECK_FILE  = os.path.join(_DATA_DIR, 'checked.json')
+_EDITED_FILE = os.path.join(_DATA_DIR, 'edited.json')
 _lock = threading.Lock()
 
 
@@ -60,5 +61,37 @@ async def update_checked(body: CheckUpdate):
         else:
             data[body.id] = body.entry
         with open(_CHECK_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False)
+    return {'status': 'ok'}
+
+
+# ── Edited transcripts ────────────────────────────────────────────────────────
+
+@router.get('/api/edited')
+async def get_edited():
+    if not os.path.exists(_EDITED_FILE):
+        return {}
+    with open(_EDITED_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+class EditedUpdate(BaseModel):
+    id: str
+    text: Optional[str] = None   # None = delete
+
+
+@router.post('/api/edited')
+async def update_edited(body: EditedUpdate):
+    os.makedirs(_DATA_DIR, exist_ok=True)
+    with _lock:
+        data: dict = {}
+        if os.path.exists(_EDITED_FILE):
+            with open(_EDITED_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        if body.text is None:
+            data.pop(body.id, None)
+        else:
+            data[body.id] = body.text
+        with open(_EDITED_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False)
     return {'status': 'ok'}
