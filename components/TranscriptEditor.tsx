@@ -3,11 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { DatasetRecord } from '@/types'
 import { useWordHighlight } from '@/hooks/useWordHighlight'
 
-function copyText(text: string) {
-  if (navigator.clipboard) {
-    return navigator.clipboard.writeText(text)
-  }
-  // HTTP fallback (execCommand)
+function execCopy(text: string) {
   const el = document.createElement('textarea')
   el.value = text
   el.style.cssText = 'position:fixed;opacity:0;pointer-events:none'
@@ -15,6 +11,14 @@ function copyText(text: string) {
   el.select()
   document.execCommand('copy')
   document.body.removeChild(el)
+}
+
+function copyText(text: string): Promise<void> {
+  // navigator.clipboard exists on HTTP but throws NotAllowedError (needs HTTPS)
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text)
+  }
+  execCopy(text)
   return Promise.resolve()
 }
 
