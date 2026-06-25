@@ -3,6 +3,21 @@ import { useState, useEffect, useCallback } from 'react'
 import type { DatasetRecord } from '@/types'
 import { useWordHighlight } from '@/hooks/useWordHighlight'
 
+function copyText(text: string) {
+  if (navigator.clipboard) {
+    return navigator.clipboard.writeText(text)
+  }
+  // HTTP fallback (execCommand)
+  const el = document.createElement('textarea')
+  el.value = text
+  el.style.cssText = 'position:fixed;opacity:0;pointer-events:none'
+  document.body.appendChild(el)
+  el.select()
+  document.execCommand('copy')
+  document.body.removeChild(el)
+  return Promise.resolve()
+}
+
 interface Props {
   record: DatasetRecord | null
   editedText: string | undefined
@@ -47,9 +62,10 @@ export default function TranscriptEditor({
   }, [record, draft, onSave])
 
   const handleCopyTranscript = useCallback(() => {
-    navigator.clipboard.writeText(displayText)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    copyText(displayText).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
   }, [displayText])
 
   if (!record) {
@@ -67,11 +83,17 @@ export default function TranscriptEditor({
         <div className="flex items-center gap-1.5 text-sm text-gray-600">
           <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{record.id}</span>
           <button
-            onClick={() => { navigator.clipboard.writeText(record.id); setCopiedId(true); setTimeout(() => setCopiedId(false), 1500) }}
-            className="text-xs text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors"
+            onClick={() => copyText(record.id).then(() => { setCopiedId(true); setTimeout(() => setCopiedId(false), 1500) })}
+            className={`relative text-xs px-1.5 py-0.5 rounded transition-all duration-150 ${
+              copiedId
+                ? 'bg-green-100 text-green-600 scale-110'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+            }`}
             title="Copy ID"
           >
-            {copiedId ? '✓' : '⎘'}
+            <span className={`inline-block transition-all duration-150 ${copiedId ? 'scale-110' : ''}`}>
+              {copiedId ? '✓' : '⎘'}
+            </span>
           </button>
           {record._avgConfidence !== null && (
             <span className="ml-2 text-xs text-gray-400">
@@ -152,9 +174,13 @@ export default function TranscriptEditor({
         )}
         <button
           onClick={handleCopyTranscript}
-          className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+          className={`px-3 py-1.5 text-sm rounded transition-all duration-150 ${
+            copied
+              ? 'bg-green-100 text-green-700 scale-105'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
         >
-          {copied ? 'Đã copy!' : 'Copy transcript'}
+          {copied ? '✓ Đã copy!' : 'Copy transcript'}
         </button>
       </div>
     </div>
