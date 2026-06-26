@@ -2,7 +2,7 @@
 import { useRef } from 'react'
 
 interface Props {
-  onLoad: (content: string) => void
+  onLoad: (content: string) => Promise<void>
   recordCount: number
 }
 
@@ -14,7 +14,7 @@ export default function JsonUploader({ onLoad, recordCount }: Props) {
     if (!file) return
     const text = await file.text()
     try {
-      onLoad(text)
+      await onLoad(text)
     } catch (err) {
       alert(`Lỗi parse JSON: ${err}`)
     }

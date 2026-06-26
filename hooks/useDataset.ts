@@ -48,14 +48,18 @@ export function useDataset() {
       .catch(() => setEdited(load<Record<string, string>>(KEYS.edited, {})))
   }, [])
 
-  const loadDataset = useCallback((content: string) => {
+  const loadDataset = useCallback(async (content: string) => {
     const parsed = parseDataset(content)
+    // Save to server first; only update this browser after persistence succeeds.
+    await apiPostJson('/api/dataset', { content })
     setRecords(parsed)
     save(KEYS.dataset, parsed)
+    setChecked({})
+    save(KEYS.checked, {})
+    setEdited({})
+    save(KEYS.edited, {})
     setCurrentIdState(null)
     save(KEYS.currentId, null)
-    // Save to server so other users auto-load this dataset
-    apiPostJson('/api/dataset', { content }).catch(console.error)
   }, [])
 
   const setCurrentId = useCallback((id: string) => {

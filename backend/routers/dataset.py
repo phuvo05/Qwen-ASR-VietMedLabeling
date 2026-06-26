@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import Optional
 import os, json, threading
@@ -18,7 +18,8 @@ async def get_dataset():
     if not os.path.exists(_DATA_FILE):
         raise HTTPException(status_code=404, detail='No default dataset')
     with open(_DATA_FILE, 'r', encoding='utf-8') as f:
-        return f.read()
+        content = f.read()
+    return PlainTextResponse(content, headers={'Cache-Control': 'no-store'})
 
 
 class DatasetBody(BaseModel):
@@ -28,8 +29,13 @@ class DatasetBody(BaseModel):
 @router.post('/api/dataset')
 async def save_dataset(body: DatasetBody):
     os.makedirs(_DATA_DIR, exist_ok=True)
-    with open(_DATA_FILE, 'w', encoding='utf-8') as f:
-        f.write(body.content)
+    with _lock:
+        with open(_DATA_FILE, 'w', encoding='utf-8') as f:
+            f.write(body.content)
+        with open(_CHECK_FILE, 'w', encoding='utf-8') as f:
+            json.dump({}, f)
+        with open(_EDITED_FILE, 'w', encoding='utf-8') as f:
+            json.dump({}, f)
     return {'status': 'ok'}
 
 
@@ -38,9 +44,10 @@ async def save_dataset(body: DatasetBody):
 @router.get('/api/checked')
 async def get_checked():
     if not os.path.exists(_CHECK_FILE):
-        return {}
+        return JSONResponse({}, headers={'Cache-Control': 'no-store'})
     with open(_CHECK_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        data = json.load(f)
+    return JSONResponse(data, headers={'Cache-Control': 'no-store'})
 
 
 class CheckUpdate(BaseModel):
@@ -70,9 +77,10 @@ async def update_checked(body: CheckUpdate):
 @router.get('/api/edited')
 async def get_edited():
     if not os.path.exists(_EDITED_FILE):
-        return {}
+        return JSONResponse({}, headers={'Cache-Control': 'no-store'})
     with open(_EDITED_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        data = json.load(f)
+    return JSONResponse(data, headers={'Cache-Control': 'no-store'})
 
 
 class EditedUpdate(BaseModel):
